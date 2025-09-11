@@ -1,0 +1,136 @@
+{
+    "ADANIPOWER.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2023-05-25",
+            "Quantity": 6,
+            "Invested Price": 256.8,
+            "Amount Invested": 1540.8
+        }
+    ],
+    "IOC.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-02-16",
+            "Quantity": 30,
+            "Invested Price": 189.4,
+            "Amount Invested": 5682
+        },
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-02-19",
+            "Quantity": 15,
+            "Invested Price": 164.35,
+            "Amount Invested": 2465.25
+        }
+    ],
+    "IRCON.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-02-19",
+            "Quantity": 20,
+            "Invested Price": 316.1,
+            "Amount Invested": 6322
+        }
+    ],
+    "RVNL.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-07-22",
+            "Quantity": 1,
+            "Invested Price": 291.25,
+            "Amount Invested": 291.25
+        }
+    ],
+    "TEXRAIL.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-07-31",
+            "Quantity": 20,
+            "Invested Price": 270,
+            "Amount Invested": 5400
+        }
+    ],
+    "NTPC.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-03-26",
+            "Quantity": 20,
+            "Invested Price": 364.75,
+            "Amount Invested": 7295
+        }
+    ],
+    "PCBL.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-04-22",
+            "Quantity": 8,
+            "Invested Price": 325.35,
+            "Amount Invested": 2602.8
+        },
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-04-22",
+            "Quantity": 2,
+            "Invested Price": 325.35,
+            "Amount Invested": 650.7
+        },
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-07-31",
+            "Quantity": 10,
+            "Invested Price": 326.3,
+            "Amount Invested": 3263
+        },
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-08-19",
+            "Quantity": 3,
+            "Invested Price": 407.95,
+            "Amount Invested": 1223.85
+        }
+    ],
+    "SCI.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-07-22",
+            "Quantity": 20,
+            "Invested Price": 304,
+            "Amount Invested": 6080
+        }
+    ],
+    "SBIN.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-07-22",
+            "Quantity": 13,
+            "Invested Price": 754.15,
+            "Amount Invested": 9803.95
+        }
+    ],
+    "TATAMOTORS.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-07-22",
+            "Quantity": 10,
+            "Invested Price": 978.75,
+            "Amount Invested": 9787.5
+        },
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-11-19",
+            "Quantity": 10,
+            "Invested Price": 771.9,
+            "Amount Invested": 7719
+        }
+    ],
+    "GABRIEL.NS": [
+        {
+            "Side": "Buy",
+            "Date Invested": "2024-12-11",
+            "Quantity": 20,
+            "Invested Price": 529.45,
+            "Amount Invested": 10589
+        }
+    ]
+}
