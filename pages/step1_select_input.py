@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
 
 # ---------- Configuration ----------
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # file belongs to TradingWorkbench pages folder.Two folder up is root
 INPUT_DIR = os.path.join(ROOT, "input_data")
 UPLOADS_DIR = os.path.join(INPUT_DIR, "uploads")
 LARGE_FILE_MB_WARN = 50  # if larger than this skip full validation and show warning
