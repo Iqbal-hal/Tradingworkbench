@@ -3,7 +3,27 @@ tradingworkbench_main.py
 
 Enhanced entry point for the TradingWorkbench multi-page Streamlit app.
 Features dynamic page discovery, better error handling, and session state management.
+
+Module Overview:
+----------------
+This module serves as the main entry point for the TradingWorkbench application.
+It handles:
+- Dynamic discovery of page modules
+- Session state initialization and management
+- Navigation between different steps of the trading analysis pipeline
+
+Key Components:
+---------------
+- discover_pages(): Automatically finds and registers page modules
+- Session state management for data persistence between pages
+- Error handling for robust application operation
+
+Example:
+--------
+>>> import tradingworkbench_main
+>>> # The application is typically run with: streamlit run tradingworkbench_main.py
 """
+
 from __future__ import annotations
 import streamlit as st
 from importlib import import_module
