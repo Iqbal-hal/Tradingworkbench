@@ -23,7 +23,7 @@ TICKER_CANDIDATES = {"ticker", "symbol", "scrip", "security", "name"}
 
 # ---------- Helpers ----------
 def ensure_dirs():
-    """Ensure required directories exist"""
+    """Ensure required directories exist in the folder structure """
     os.makedirs(INPUT_DIR, exist_ok=True)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 
@@ -57,9 +57,40 @@ def sanitize_filename(filename: str) -> str:
     return name
 
 def save_upload(uploaded_file) -> Tuple[Optional[str], Optional[str]]:
-    """Save uploaded file and return (saved_path, error_message)"""
+    """
+    Save an uploaded file to the designated uploads directory with conflict resolution.
+    
+    Args:
+        uploaded_file: A file-like object with a `name` attribute and `getbuffer()` method.
+                      Typically a Streamlit UploadedFile object or similar web framework
+                      file upload object. Must support:
+                      - `.name` attribute for the original filename
+                      - `.getbuffer()` method to access file content as bytes
+    
+    Returns:
+        Tuple[Optional[str], Optional[str]]: A tuple containing:
+            - str: The full path to the saved file if successful, None otherwise
+            - str: Error message if saving failed, None if successful
+    
+    Raises:
+        This function is designed to catch all exceptions and return them as error messages
+        rather than raising exceptions directly. However, the following exceptions might
+        occur in exceptional circumstances:
+        - PermissionError: If the process lacks write permissions to the target directory
+        - OSError: For filesystem-related issues (e.g., disk full, path too long)
+    
+    Notes:
+        - Uses the UPLOADS_DIR global constant to determine where to save files
+        - Timestamp format follows ISO 8601 basic format without separators
+        - All files are saved in binary mode to preserve original content exactly
+        - Error messages are user-friendly and suitable for display in UI
+       
+        target = os.path.join(UPLOADS_DIR, name) # Constructing a file path as input_data/uploads/<filename>
+
+    """
     ensure_dirs()
     name = sanitize_filename(uploaded_file.name)
+    """file path as input_data/uploads/<filename>"""
     target = os.path.join(UPLOADS_DIR, name)
     
     # Handle existing files

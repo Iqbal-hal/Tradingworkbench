@@ -32,15 +32,7 @@ extensions = [
     'sphinx.ext.viewcode',       # Add links to highlighted source code
     'sphinx.ext.githubpages',    # Enable GitHub Pages integration
     'sphinx.ext.autosummary',    # Generate automatic summaries
-    'autoapi.extension',  # Automatically document code from source files
 ]
-
-# Configure autoapi
-autoapi_dirs = ['../pages']  # Path to your Python modules
-autoapi_type = 'python'
-autoapi_options = ['members', 'undoc-members', 'show-inheritance', 'show-module-summary']
-autoapi_root = 'autoapi'
-autoapi_add_toctree_entry = False  # We'll handle toctree manually
 
 # Napoleon settings for Google-style docstrings
 napoleon_google_docstring = True
@@ -63,12 +55,11 @@ autodoc_mock_imports = ["pandas", "numpy", "matplotlib", "ccxt", "ta", "yfinance
 templates_path = ['_templates']
 
 # Exclude patterns
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'env', 'venv']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'env', 'venv', 'workbenchenv']
 
 # -- Options for HTML output -------------------------------------------------
 
 # Use a more modern theme (requires installing sphinx_rtd_theme)
-# pip install sphinx_rtd_theme
 html_theme = 'sphinx_rtd_theme'
 
 # Theme options

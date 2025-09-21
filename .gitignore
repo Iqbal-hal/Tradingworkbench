@@ -165,3 +165,35 @@ output_data/dashboard_exports/*.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Sphinx build outputs
+docs/_build/
+docs/autoapi/
+docs/generated/
+
+# Auto-generated API documentation
+docs/api/
+docs/reference/
+
+# Cache files
+docs/.doctrees/
+docs/.cache/
+
+# Environment-specific files
+docs/venv/
+docs/env/
+docs/.venv/
+
+# IDE and editor files
+docs/.vscode/
+docs/.idea/
+docs/*.swp
+docs/*.swo
+
+# OS-generated files
+docs/.DS_Store
+docs/Thumbs.db
+
+# Python cache files
+docs/__pycache__/
+docs/*.pyc
