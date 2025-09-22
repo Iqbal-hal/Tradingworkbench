@@ -1,161 +1,136 @@
 """
 pages/step1_select_input.py
 
-Enhanced Step 1 page for TradingWorkbench: select OHLC CSV from `input_data/`.
-Features improved validation, better UI/UX, and enhanced error handling.
+Step 1 page for TradingWorkbench: select OHLC CSV from input_data/.
+Optimized for predefined column structure without upload features.
 """
+
 from __future__ import annotations
 import streamlit as st
 import pandas as pd
 import os
 import glob
-import re
 from datetime import datetime
-from typing import Tuple, Optional, Dict, Any
+from typing import Dict, Any
 
-# ---------- Configuration ----------
+# --- CONFIGURATION FOR YOUR SYSTEM ---
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INPUT_DIR = os.path.join(ROOT, "input_data")
-UPLOADS_DIR = os.path.join(INPUT_DIR, "uploads")
-LARGE_FILE_MB_WARN = 50  # if larger than this skip full validation and show warning
-REQUIRED_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
-TICKER_CANDIDATES = {"ticker", "symbol", "scrip", "security", "name"}
+# ROOT = "E:\Sync To GD\GIT\Tradingworkbench"
 
-# ---------- Helpers ----------
+INPUT_DIR = os.path.join(ROOT, "input_data")
+# INPUT_DIR = "E:\Sync To GD\GIT\Tradingworkbench\input_data"
+
+LARGE_FILE_MB_WARN = 50  # Skip full validation for files larger than 50MB
+
+# --- PREDEFINED COLUMN NAMES (EXACTLY AS IN YOUR CSV) ---
+PREDEFINED_COLUMNS = [
+    "Date", "Stock", "Open", "High", "Low", "Close", "Volume", 
+    "P/E", "EPS", "Earning Growth", "MCap", "P/B", "D/E", "PEG"
+]
+
+# Columns that will be renamed due to Python syntax restrictions
+COLUMN_RENAME_MAP = {
+    "P/E": "PE",
+    "P/B": "PB", 
+    "D/E": "DE",
+    "Earning Growth": "Earning_Growth"
+}
+
+# --- HELPER FUNCTIONS ---
+
 def ensure_dirs():
-    """Ensure required directories exist in the folder structure """
+    """Create required directories if they don't exist"""
     os.makedirs(INPUT_DIR, exist_ok=True)
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 def list_csv_files():
-    """List CSV files in input directory, sorted by modification time"""
+    """
+    List CSV files in input directory, sorted by modification time (newest first)
+    
+    HOW IT WORKS:
+    1. Uses glob pattern matching to find all .csv files
+    2. Sorts files by modification time using os.path.getmtime()
+    3. Returns list with newest files first
+    """
     ensure_dirs()
     pattern = os.path.join(INPUT_DIR, "*.csv")
     files = glob.glob(pattern)
-    upload_pattern = os.path.join(UPLOADS_DIR, "*.csv")
-    upload_files = glob.glob(upload_pattern)
     
-    # Combine and sort by modification time
-    all_files = files + upload_files
-    files_sorted = sorted(all_files, key=os.path.getmtime, reverse=True)
+    # Sort by modification time (newest first)
+    files_sorted = sorted(files, key=os.path.getmtime, reverse=True)
     return files_sorted
 
 def human_size(nbytes: int) -> str:
-    """Convert bytes to human readable format"""
+    """
+    Convert bytes to human readable format (KB, MB, GB)
+    
+    EXAMPLE:
+    human_size(1500000) returns "1.4 MB"
+    human_size(500) returns "500.0 B"
+    """
     for unit in ("B", "KB", "MB", "GB"):
         if nbytes < 1024.0:
             return f"{nbytes:.1f} {unit}"
         nbytes /= 1024.0
     return f"{nbytes:.1f} TB"
 
-def sanitize_filename(filename: str) -> str:
-    """Sanitize filename by removing special characters"""
-    # Keep alphanumeric, spaces, hyphens, underscores, and dots
-    name = re.sub(r'[^\w\s\-_.]', '', filename)
-    # Replace spaces with underscores
-    name = name.replace(' ', '_')
-    return name
-
-def save_upload(uploaded_file) -> Tuple[Optional[str], Optional[str]]:
+def validate_column_structure(path: str) -> dict:
     """
-    Save an uploaded file to the designated uploads directory with conflict resolution.
+    Validate that CSV has the exact predefined column structure
     
-    Args:
-        uploaded_file: A file-like object with a `name` attribute and `getbuffer()` method.
-                      Typically a Streamlit UploadedFile object or similar web framework
-                      file upload object. Must support:
-                      - `.name` attribute for the original filename
-                      - `.getbuffer()` method to access file content as bytes
-    
-    Returns:
-        Tuple[Optional[str], Optional[str]]: A tuple containing:
-            - str: The full path to the saved file if successful, None otherwise
-            - str: Error message if saving failed, None if successful
-    
-    Raises:
-        This function is designed to catch all exceptions and return them as error messages
-        rather than raising exceptions directly. However, the following exceptions might
-        occur in exceptional circumstances:
-        - PermissionError: If the process lacks write permissions to the target directory
-        - OSError: For filesystem-related issues (e.g., disk full, path too long)
-    
-    Notes:
-        - Uses the UPLOADS_DIR global constant to determine where to save files
-        - Timestamp format follows ISO 8601 basic format without separators
-        - All files are saved in binary mode to preserve original content exactly
-        - Error messages are user-friendly and suitable for display in UI
-       
-        target = os.path.join(UPLOADS_DIR, name) # Constructing a file path as input_data/uploads/<filename>
-
+    HOW IT WORKS:
+    1. Reads just the header row of the CSV file
+    2. Compares against PREDEFINED_COLUMNS list
+    3. Returns validation status and messages
     """
-    ensure_dirs()
-    name = sanitize_filename(uploaded_file.name)
-    """file path as input_data/uploads/<filename>"""
-    target = os.path.join(UPLOADS_DIR, name)
-    
-    # Handle existing files
-    if os.path.exists(target):
-        ts = datetime.now().strftime("%Y%m%dT%H%M%S")
-        base, ext = os.path.splitext(name)
-        name = f"{base}_{ts}{ext}"
-        target = os.path.join(UPLOADS_DIR, name)
-    
     try:
-        with open(target, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        return target, None
+        # Read only the header row
+        df_header = pd.read_csv(path, nrows=0)
+        actual_columns = list(df_header.columns)
+        
+        # Check if columns match exactly (order doesn't matter)
+        missing_columns = set(PREDEFINED_COLUMNS) - set(actual_columns)
+        extra_columns = set(actual_columns) - set(PREDEFINED_COLUMNS)
+        
+        messages = []
+        status = "PASS"
+        
+        if missing_columns:
+            messages.append(f"Missing required columns: {', '.join(sorted(missing_columns))}")
+            status = "FAIL"
+        
+        if extra_columns:
+            messages.append(f"Extra columns found: {', '.join(sorted(extra_columns))}")
+            status = "WARN" if status != "FAIL" else "FAIL"
+        
+        if status == "PASS":
+            messages.append("Column structure validation passed")
+        
+        return {
+            "status": status, 
+            "messages": messages, 
+            "actual_columns": actual_columns,
+            "missing_columns": list(missing_columns),
+            "extra_columns": list(extra_columns)
+        }
+        
     except Exception as e:
-        return None, f"Failed to save file: {e}"
+        return {
+            "status": "FAIL", 
+            "messages": [f"Error reading file: {e}"], 
+            "actual_columns": [],
+            "missing_columns": [],
+            "extra_columns": []
+        }
 
-def detect_mapping(cols: list[str]) -> dict:
-    """Enhanced column mapping detection with more flexible matching"""
-    lm = {c.lower().strip(): c for c in cols}
-    mapping = {}
+def enhanced_deep_validation(path: str) -> dict:
+    """
+    Comprehensive data validation with sampling for large files
     
-    # Define column aliases for more flexible matching
-    column_aliases = {
-        "date": ["date", "timestamp", "datetime", "time", "dt"],
-        "open": ["open", "opening", "open price", "op", "open_value"],
-        "high": ["high", "high price", "maximum", "max", "hi"],
-        "low": ["low", "low price", "minimum", "min", "lo"],
-        "close": ["close", "closing", "close price", "last", "cp", "close_value"],
-        "volume": ["volume", "vol", "quantity", "qty", "shares", "turnover"]
-    }
-    
-    # Map required columns
-    for standard_name, aliases in column_aliases.items():
-        for alias in aliases:
-            if alias in lm:
-                mapping[standard_name] = lm[alias]
-                break
-    
-    # Map ticker column
-    for cand in TICKER_CANDIDATES:
-        if cand in lm:
-            mapping["ticker"] = lm[cand]
-            break
-    
-    return mapping
-
-def header_check(path: str) -> dict:
-    """Validate CSV header and detect column mapping"""
-    try:
-        df0 = pd.read_csv(path, nrows=0)
-        cols = list(df0.columns)
-    except Exception as e:
-        return {"status": "FAIL", "messages": [f"Header read error: {e}"], "cols": [], "mapping": {}}
-    
-    mapping = detect_mapping(cols)
-    missing = sorted(list(REQUIRED_COLUMNS - set(mapping.keys())))
-    
-    if missing:
-        return {"status": "FAIL", "messages": [f"Missing required columns: {', '.join(missing)}"], 
-                "cols": cols, "mapping": mapping}
-    
-    return {"status": "PASS", "messages": ["Required columns present."], "cols": cols, "mapping": mapping}
-
-def enhanced_deep_validation(path: str, mapping: dict) -> dict:
-    """Comprehensive data validation with sampling for large files"""
+    HOW IT WORKS:
+    1. Checks file size to determine validation strategy
+    2. For large files (>50MB), samples first 1000 rows
+    3. Validates data quality, missing values, numeric conversion
+    """
     size_mb = os.path.getsize(path) / 1_000_000
     msgs = []
     
@@ -163,100 +138,86 @@ def enhanced_deep_validation(path: str, mapping: dict) -> dict:
     if size_mb > LARGE_FILE_MB_WARN:
         try:
             # Sample data for large files
-            date_col = mapping["date"]
-            df = pd.read_csv(path, parse_dates=[date_col], nrows=1000, low_memory=False)
+            df = pd.read_csv(path, nrows=1000, low_memory=False)
             msgs.append(f"Large file ({size_mb:.1f} MB): Validated sample of 1000 rows")
         except Exception as e:
             return {"status": "FAIL", "messages": [f"Parse error: {e}"], "size_mb": size_mb}
     else:
         try:
-            date_col = mapping["date"]
-            df = pd.read_csv(path, parse_dates=[date_col], infer_datetime_format=True, low_memory=False)
+            # Full validation for smaller files
+            df = pd.read_csv(path, low_memory=False)
             msgs.append(f"Full validation completed. Rows: {len(df):,}")
         except Exception as e:
             return {"status": "FAIL", "messages": [f"Parse error: {e}"], "size_mb": size_mb}
     
-    # Check date parsing
-    date_col_name = mapping["date"]
-    if pd.api.types.is_datetime64_any_dtype(df[date_col_name]):
-        msgs.append(f"Parsed '{date_col_name}' as datetime")
-    else:
-        msgs.append(f"Warning: '{date_col_name}' not fully parsed as datetime")
+    # Apply column renaming for problematic column names
+    df_renamed = df.rename(columns=COLUMN_RENAME_MAP)
     
-    # Check for missing values
-    for col in ("open", "high", "low", "close", "volume"):
-        if col in mapping:
-            col_name = mapping[col]
-            missing = df[col_name].isna().sum()
+    # Check for missing values in critical columns
+    critical_columns = ["Date", "Stock", "Open", "High", "Low", "Close", "Volume"]
+    for col in critical_columns:
+        if col in df.columns:
+            missing = df[col].isna().sum()
             if missing > 0:
                 pct = 100.0 * missing / max(1, len(df))
-                msgs.append(f"'{col_name}': {missing} missing values ({pct:.1f}%)")
+                msgs.append(f"'{col}': {missing} missing values ({pct:.1f}%)")
     
     # Check for negative values where inappropriate
-    for col in ("open", "high", "low", "close"):
-        if col in mapping:
-            col_name = mapping[col]
-            negative = (df[col_name] < 0).sum()
+    price_columns = ["Open", "High", "Low", "Close"]
+    for col in price_columns:
+        if col in df.columns:
+            negative = (df[col] < 0).sum()
             if negative > 0:
-                msgs.append(f"'{col_name}': {negative} negative values")
+                msgs.append(f"'{col}': {negative} negative values")
     
-    if "volume" in mapping:
-        vol_name = mapping["volume"]
-        negative_vol = (df[vol_name] < 0).sum()
-        if negative_vol > 0:
-            msgs.append(f"'{vol_name}': {negative_vol} negative volumes")
-    
-    # Check numeric conversion
-    for col in ("open", "high", "low", "close", "volume"):
-        if col in mapping:
-            col_name = mapping[col]
-            coerced = pd.to_numeric(df[col_name], errors="coerce")
+    # Check numeric conversion for numeric columns
+    numeric_columns = ["Open", "High", "Low", "Close", "Volume", "P/E", "EPS", "MCap", "P/B", "D/E", "PEG"]
+    for col in numeric_columns:
+        if col in df.columns:
+            coerced = pd.to_numeric(df[col], errors="coerce")
             n_bad = int(coerced.isna().sum())
             if n_bad > 0:
                 pct = 100.0 * n_bad / max(1, len(coerced))
-                msgs.append(f"'{col_name}': {n_bad} non-numeric cells ({pct:.1f}%)")
+                msgs.append(f"'{col}': {n_bad} non-numeric cells ({pct:.1f}%)")
     
-    # Check for duplicates
-    if "ticker" in mapping:
-        dup = int(df.duplicated(subset=[mapping["date"], mapping["ticker"]]).sum())
-        if dup:
-            msgs.append(f"Found {dup} duplicate (date,ticker) rows.")
-    else:
-        dup = int(df.duplicated(subset=[mapping["date"]]).sum())
-        if dup:
-            msgs.append(f"Found {dup} duplicate date rows.")
+    # Check date parsing
+    if "Date" in df.columns:
+        try:
+            df_date = pd.to_datetime(df["Date"], errors="coerce")
+            bad_dates = df_date.isna().sum()
+            if bad_dates > 0:
+                msgs.append(f"Date: {bad_dates} invalid date formats")
+            else:
+                msgs.append("Date column parsed successfully")
+        except Exception as e:
+            msgs.append(f"Date parsing error: {e}")
     
-    # Check date range and sorting
-    try:
-        mn = df[mapping["date"]].min()
-        mx = df[mapping["date"]].max()
-        msgs.append(f"Date range: {mn} → {mx}")
-        
-        # Check if dates are sorted
-        if not df[mapping["date"]].is_monotonic_increasing:
-            msgs.append("Warning: Dates are not sorted chronologically")
-    except Exception:
-        pass
+    # Check for duplicates by Date and Stock
+    if "Date" in df.columns and "Stock" in df.columns:
+        duplicates = df.duplicated(subset=["Date", "Stock"]).sum()
+        if duplicates > 0:
+            msgs.append(f"Found {duplicates} duplicate (Date,Stock) combinations")
     
-    # Determine status
+    # Determine final validation status
     status = "PASS"
     for m in msgs:
         ml = m.lower()
         if "missing" in ml or "error" in ml or "parse" in ml:
             status = "FAIL"
-        if ("duplicate" in ml or "invalid" in ml or "warning" in ml or 
-            "negative" in ml or "not sorted" in ml):
+        elif ("duplicate" in ml or "invalid" in ml or "warning" in ml or 
+              "negative" in ml or "not sorted" in ml):
             if status != "FAIL":
                 status = "WARN"
     
     return {"status": status, "messages": msgs, "size_mb": size_mb}
 
 def get_file_info(path: str) -> Dict[str, Any]:
-    """Get comprehensive file information"""
+    """Get comprehensive file information including size and row count"""
     try:
         stat = os.stat(path)
+        
         # Count rows (excluding header)
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             row_count = sum(1 for line in f) - 1
         
         return {
@@ -265,207 +226,225 @@ def get_file_info(path: str) -> Dict[str, Any]:
             "created": datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S"),
             "rows": row_count
         }
-    except Exception:
-        return {}
+    except Exception as e:
+        return {"error": str(e)}
 
-# ---------- Render ----------
+# --- MAIN RENDER FUNCTION ---
 def render():
+    """Main function that renders the Step 1 interface"""
     st.title("📊 1 — Select OHLC CSV Data")
     
-    # Information expander
-    with st.expander("📋 Expected CSV Format & Instructions", expanded=False):
-        st.markdown("""
-        Your CSV should include these columns (case insensitive):
-        - **Date**: Date/time of each observation
-        - **Open**: Opening price
-        - **High**: Highest price during the period  
-        - **Low**: Lowest price during the period
-        - **Close**: Closing price
-        - **Volume**: Trading volume
+    # Information expander with predefined column requirements
+    with st.expander("📋 Expected CSV Format", expanded=False):
+        st.markdown(f"""
+        Your CSV must have **exactly these columns** (case-sensitive):
         
-        Optional columns:
-        - **Ticker/Symbol**: Security identifier (if multiple securities in file)
+        **Required Columns:**
+        - `Date`, `Stock`, `Open`, `High`, `Low`, `Close`, `Volume`
         
-        Files are read from the `input_data/` directory. Uploaded files are saved to `input_data/uploads/`.
+        **Additional Analysis Columns:**
+        - `P/E`, `EPS`, `Earning Growth`, `MCap`, `P/B`, `D/E`, `PEG`
+        
+        **Note:** Files are automatically read from the `input_data/` directory.
+        Place your CSV files in `E:\\Sync To GD\\GIT\\Tradingworkbench\\input_data\\`
         """)
         
-        # Show example data
-        st.markdown("**Example Data Format:**")
+        # Show expected data format
+        st.markdown("**Expected Data Format:**")
         example_data = {
-            "date": ["2023-01-01", "2023-01-02", "2023-01-03"],
-            "open": [100.0, 101.5, 102.3],
-            "high": [102.0, 103.0, 104.5],
-            "low": [99.5, 100.5, 101.0],
-            "close": [101.5, 102.0, 103.5],
-            "volume": [1000000, 1200000, 950000],
-            "ticker": ["AAPL", "AAPL", "AAPL"]
+            "Date": ["2023-01-01", "2023-01-02"],
+            "Stock": ["AAPL", "AAPL"],
+            "Open": [150.0, 152.5],
+            "High": [155.0, 154.0],
+            "Low": [149.5, 151.0],
+            "Close": [153.0, 152.8],
+            "Volume": [1000000, 1200000],
+            "P/E": [25.0, 24.8],
+            "EPS": [6.0, 6.1],
+            "Earning Growth": [0.15, 0.12],
+            "MCap": [2500000000, 2550000000],
+            "P/B": [5.0, 5.1],
+            "D/E": [0.3, 0.29],
+            "PEG": [1.2, 1.18]
         }
         st.dataframe(pd.DataFrame(example_data))
     
+    # Ensure input directory exists
     ensure_dirs()
+    
+    # Get list of CSV files
     files = list_csv_files()
+    if not files:
+        st.info("📁 No CSV files found in input_data folder.")
+        st.info("Please place your CSV files in: E:\\Sync To GD\\GIT\\Tradingworkbench\\input_data\\")
+        return
+    
+    # Create mapping of display names to full paths
     basenames = [os.path.basename(p) for p in files]
     file_paths = {os.path.basename(p): p for p in files}
-
-    # File selection UI
-    col1, col2, col3 = st.columns([6, 2, 3])
+    
+    # --- FILE SELECTION INTERFACE ---
+    st.subheader("📂 Select CSV File")
+    
+    col1, col2 = st.columns([4, 1])
     
     with col1:
-        if basenames:
-            default_idx = 0
-            prev = st.session_state.get("twb_selected_csv_name")
-            if prev in basenames:
-                default_idx = basenames.index(prev)
-            
-            selected_basename = st.selectbox(
-                "Choose CSV file", 
-                options=basenames, 
-                index=default_idx, 
-                key="twb_select_dropdown",
-                help="Select a CSV file from the input_data directory"
-            )
-            selected_path = file_paths[selected_basename]
-        else:
-            st.info("No CSV files found. Upload a file or place CSV files in the input_data/ folder.")
-            selected_basename = None
-            selected_path = None
-
-    with col2:
-        if st.button("🔄 Refresh List", help="Refresh the list of available files"):
-            st.experimental_rerun()
-
-    with col3:
-        uploaded = st.file_uploader(
-            "Upload CSV", 
-            type=["csv"], 
-            key="twb_uploader",
-            help="Upload a CSV file to be saved in input_data/uploads/"
+        # Set default selection (previous selection or first file)
+        default_idx = 0
+        prev_selection = st.session_state.get("twb_selected_csv_name")
+        if prev_selection in basenames:
+            default_idx = basenames.index(prev_selection)
+        
+        selected_basename = st.selectbox(
+            "Choose CSV file from input_data folder:", 
+            options=basenames, 
+            index=default_idx, 
+            key="twb_select_dropdown"
         )
-        if uploaded is not None:
-            saved_path, error = save_upload(uploaded)
-            if error:
-                st.error(f"Upload failed: {error}")
-            else:
-                st.success(f"Uploaded and saved to: {os.path.basename(saved_path)}")
-                # Add to session state to select the new file
-                st.session_state.twb_select_dropdown = os.path.basename(saved_path)
-                st.experimental_rerun()
-
+        selected_path = file_paths[selected_basename]
+    
+    with col2:
+        # Refresh button to update file list
+        if st.button("🔄 Refresh", help="Refresh the list of available files"):
+            st.experimental_rerun()
+    
     st.markdown("---")
-
-    if selected_path:
-        # File information
-        try:
-            st.subheader("📄 File Details")
-            file_info = get_file_info(selected_path)
-            
-            col_info1, col_info2 = st.columns(2)
-            with col_info1:
-                st.write("**File:**", selected_basename)
-                st.write("**Size:**", file_info.get("size", "Unknown"))
-                st.write("**Rows:**", file_info.get("rows", "Unknown"))
-            with col_info2:
-                st.write("**Path:**", selected_path)
-                st.write("**Modified:**", file_info.get("modified", "Unknown"))
-                st.write("**Created:**", file_info.get("created", "Unknown"))
-        except Exception as e:
-            st.error(f"Error getting file info: {e}")
-
-        # Data preview
-        st.subheader("👀 Preview (first 5 rows)")
-        try:
-            preview = pd.read_csv(selected_path, nrows=5)
-            st.dataframe(preview)
-        except Exception as e:
-            st.error(f"Preview failed: {e}")
-
-        # Validation sections
-        st.subheader("✅ Validation Results")
+    
+    # --- FILE INFORMATION DISPLAY ---
+    st.subheader("📄 File Details")
+    
+    try:
+        file_info = get_file_info(selected_path)
         
-        # Header validation
-        with st.expander("Header Validation", expanded=True):
-            header = header_check(selected_path)
-            if header["status"] == "PASS":
-                st.success("✓ " + header["messages"][0])
-                if header.get("mapping"):
-                    st.write("**Detected column mapping:**")
-                    for std_name, orig_name in header["mapping"].items():
-                        st.write(f"- {std_name}: {orig_name}")
-            else:
-                st.error("✗ " + "; ".join(header.get("messages", ["Header check failed"])))
-
-        # Deep validation
-        with st.expander("Data Quality Validation", expanded=True):
-            if header["status"] == "PASS":
-                mapping = header.get("mapping", {})
-                deep = enhanced_deep_validation(selected_path, mapping)
-            else:
-                deep = {"status": "FAIL", "messages": ["Skipping deep validation because header check failed."]}
-            
-            if deep["status"] == "PASS":
-                st.success("✓ Deep validation: PASS")
-            elif deep["status"] == "WARN":
-                st.warning("⚠ Deep validation: WARN")
-            else:
-                st.error("✗ Deep validation: FAIL")
-            
-            # Show validation messages
-            for m in deep.get("messages", []):
-                st.write("-", m)
-
-        # Action buttons
-        st.markdown("---")
-        col_act1, col_act2 = st.columns([3, 1])
+        col_info1, col_info2 = st.columns(2)
+        with col_info1:
+            st.write("**File:**", selected_basename)
+            st.write("**Size:**", file_info.get("size", "Unknown"))
+            st.write("**Rows:**", file_info.get("rows", "Unknown"))
+        with col_info2:
+            st.write("**Path:**", selected_path)
+            st.write("**Modified:**", file_info.get("modified", "Unknown"))
+            st.write("**Created:**", file_info.get("created", "Unknown"))
+    except Exception as e:
+        st.error(f"Error getting file info: {e}")
+    
+    # --- DATA PREVIEW ---
+    st.subheader("👀 Data Preview (first 5 rows)")
+    
+    try:
+        preview_df = pd.read_csv(selected_path, nrows=5)
         
-        with col_act1:
-            if deep["status"] in ["PASS", "WARN"]:
-                if st.button("✅ Proceed with this file", type="primary"):
-                    st.session_state["twb_selected_csv_name"] = selected_basename
-                    st.session_state["twb_selected_csv_path"] = selected_path
-                    st.session_state["twb_selected_csv_validation"] = {
-                        "header": header, 
-                        "deep": deep
-                    }
-                    
-                    # Add to file history
-                    if 'twb_file_history' not in st.session_state:
-                        st.session_state.twb_file_history = []
-                    if selected_basename not in st.session_state.twb_file_history:
-                        st.session_state.twb_file_history.append(selected_basename)
-                    
-                    st.success(f"Selection saved: {selected_basename}")
-                    st.info("You can now proceed to the next step in the sidebar.")
-            else:
-                force = st.checkbox("I understand the issues and want to proceed anyway", key="twb_force_proceed")
-                if force and st.button("⛔ Proceed despite errors"):
-                    st.session_state["twb_selected_csv_name"] = selected_basename
-                    st.session_state["twb_selected_csv_path"] = selected_path
-                    st.session_state["twb_selected_csv_validation"] = {
-                        "header": header, 
-                        "deep": deep
-                    }
-                    st.warning(f"Selection saved with issues: {selected_basename}")
+        # Apply column renaming for display
+        preview_renamed = preview_df.rename(columns=COLUMN_RENAME_MAP)
+        st.dataframe(preview_renamed)
         
-        with col_act2:
-            if st.button("🗑️ Clear selection"):
-                keys_to_remove = [
-                    "twb_selected_csv_name", 
-                    "twb_selected_csv_path", 
-                    "twb_selected_csv_validation",
-                    "twb_force_proceed"
-                ]
-                for key in keys_to_remove:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                st.experimental_rerun()
-
-    # Show current selection status
+        # Show original column names
+        with st.expander("🔍 Original Column Names"):
+            st.write("Original columns:", list(preview_df.columns))
+            st.write("Renamed columns:", list(preview_renamed.columns))
+            
+    except Exception as e:
+        st.error(f"Preview failed: {e}")
+    
+    # --- VALIDATION SECTIONS ---
+    st.subheader("✅ Validation Results")
+    
+    # Column structure validation
+    with st.expander("Column Structure Validation", expanded=True):
+        col_validation = validate_column_structure(selected_path)
+        
+        if col_validation["status"] == "PASS":
+            st.success("✓ Column structure validation passed")
+        elif col_validation["status"] == "WARN":
+            st.warning("⚠ Column structure validation: WARN")
+        else:
+            st.error("✗ Column structure validation: FAIL")
+        
+        for message in col_validation.get("messages", []):
+            st.write("-", message)
+    
+    # Data quality validation
+    with st.expander("Data Quality Validation", expanded=True):
+        if col_validation["status"] == "FAIL":
+            st.warning("Skipping data quality validation due to column structure issues")
+            deep_validation = {"status": "SKIP", "messages": ["Validation skipped"]}
+        else:
+            deep_validation = enhanced_deep_validation(selected_path)
+        
+        if deep_validation["status"] == "PASS":
+            st.success("✓ Data quality validation: PASS")
+        elif deep_validation["status"] == "WARN":
+            st.warning("⚠ Data quality validation: WARN")
+        elif deep_validation["status"] == "FAIL":
+            st.error("✗ Data quality validation: FAIL")
+        else:
+            st.info("Data quality validation: SKIPPED")
+        
+        for message in deep_validation.get("messages", []):
+            st.write("-", message)
+    
+    # --- ACTION BUTTONS ---
+    st.markdown("---")
+    col_act1, col_act2 = st.columns([3, 1])
+    
+    with col_act1:
+        # Proceed button (only enabled if validation passes or user forces)
+        if deep_validation["status"] in ["PASS", "WARN"] and col_validation["status"] in ["PASS", "WARN"]:
+            if st.button("✅ Proceed with this file", type="primary", key="proceed_btn"):
+                # Save selection to session state for other pages
+                st.session_state["twb_selected_csv_name"] = selected_basename
+                st.session_state["twb_selected_csv_path"] = selected_path
+                st.session_state["twb_selected_csv_validation"] = {
+                    "column_structure": col_validation, 
+                    "data_quality": deep_validation
+                }
+                
+                # Add to file history
+                if 'twb_file_history' not in st.session_state:
+                    st.session_state.twb_file_history = []
+                if selected_basename not in st.session_state.twb_file_history:
+                    st.session_state.twb_file_history.append(selected_basename)
+                
+                st.success(f"✅ Selection saved: {selected_basename}")
+                st.info("You can now proceed to the next step in the sidebar.")
+        else:
+            # Allow forced proceed despite validation issues
+            force_proceed = st.checkbox(
+                "I understand the data quality issues and want to proceed anyway", 
+                key="twb_force_proceed"
+            )
+            if force_proceed and st.button("⛔ Proceed despite errors", key="force_btn"):
+                st.session_state["twb_selected_csv_name"] = selected_basename
+                st.session_state["twb_selected_csv_path"] = selected_path
+                st.session_state["twb_selected_csv_validation"] = {
+                    "column_structure": col_validation, 
+                    "data_quality": deep_validation
+                }
+                st.warning(f"⚠ Selection saved with issues: {selected_basename}")
+    
+    with col_act2:
+        # Clear selection button
+        if st.button("🗑️ Clear selection", key="clear_btn"):
+            keys_to_remove = [
+                "twb_selected_csv_name", 
+                "twb_selected_csv_path", 
+                "twb_selected_csv_validation",
+                "twb_force_proceed"
+            ]
+            for key in keys_to_remove:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.experimental_rerun()
+    
+    # --- CURRENT SELECTION STATUS ---
     st.markdown("---")
     if "twb_selected_csv_name" in st.session_state:
-        st.info(f"Current selection: `{st.session_state['twb_selected_csv_name']}`")
+        st.info(f"**Current selection:** `{st.session_state['twb_selected_csv_name']}`")
         
-        # Show file history if available
+        # Show recent files history
         if 'twb_file_history' in st.session_state and st.session_state.twb_file_history:
             with st.expander("📋 Recent Files", expanded=False):
-                for i, file in enumerate(st.session_state.twb_file_history[-5:]):  # Show last 5 files
-                    st.write(f"{i+1}. {file}")
+                # Show last 5 files used
+                recent_files = st.session_state.twb_file_history[-5:]
+                for i, file in enumerate(reversed(recent_files), 1):
+                    st.write(f"{i}. {file}")
