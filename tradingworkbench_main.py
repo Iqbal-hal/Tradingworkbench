@@ -45,7 +45,15 @@ if 'selected_file' not in st.session_state:
     st.session_state.selected_file = None
 
 def discover_pages():
-    """Automatically discover pages in the pages directory"""
+    """
+    Discover page modules in pages directory matching step*.py pattern.
+    
+    Returns:
+        list: Sorted list of (display_label, module_name) tuples
+    
+    Finds files like step1_select_input.py and converts to ("1 — Select Input", "step1_select_input")
+    Uses glob.glob to find files and extracts metadata from filenames.
+    """
     page_files = glob.glob(os.path.join(PAGES_DIR, "step*.py"))
     pages = []
     
