@@ -25,7 +25,7 @@ LARGE_FILE_MB_WARN = 50  # Skip full validation for files larger than 50MB
 # --- PREDEFINED COLUMN NAMES (EXACTLY AS IN YOUR CSV) ---
 PREDEFINED_COLUMNS = [
     "Date", "Stock", "Open", "High", "Low", "Close", "Volume", 
-    "P/E", "EPS", "Earning Growth", "MCap", "P/B", "D/E", "PEG"
+    "P/E", "EPS", "Earning Growth", "MCap", "P/B","DY", "D/E", "PEG"
 ]
 
 # Columns that will be renamed due to Python syntax restrictions
@@ -33,7 +33,9 @@ COLUMN_RENAME_MAP = {
     "P/E": "PE",
     "P/B": "PB", 
     "D/E": "DE",
-    "Earning Growth": "Earning_Growth"
+    "Earning Growth": "Earning_Growth",
+    "DY": "Dividend_Yield"  # Added DY rename for Python compatibility
+
 }
 
 # --- HELPER FUNCTIONS ---
@@ -171,7 +173,7 @@ def enhanced_deep_validation(path: str) -> dict:
                 msgs.append(f"'{col}': {negative} negative values")
     
     # Check numeric conversion for numeric columns
-    numeric_columns = ["Open", "High", "Low", "Close", "Volume", "P/E", "EPS", "MCap", "P/B", "D/E", "PEG"]
+    numeric_columns = ["Open", "High", "Low", "Close", "Volume", "P/E", "EPS", "MCap", "P/B", "DY", "D/E", "PEG"]
     for col in numeric_columns:
         if col in df.columns:
             coerced = pd.to_numeric(df[col], errors="coerce")
@@ -264,6 +266,7 @@ def render():
             "Earning Growth": [0.15, 0.12],
             "MCap": [2500000000, 2550000000],
             "P/B": [5.0, 5.1],
+            "DY": [0.015, 0.016],  # Added DY example
             "D/E": [0.3, 0.29],
             "PEG": [1.2, 1.18]
         }
