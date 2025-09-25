@@ -407,7 +407,7 @@ if st.button("Run Backtest Now") or (mode=="Edit, Save & Run Backtest" and run_b
     st.info("Running backtest using current config. Output will be printed to console and log file as before.")
     try:
         # minimal integration: import the class and run
-        from Enhanced_stock_trading_V8 import FilteringAndBacktesting
+        from Reference.Enhanced_stock_trading_V8 import FilteringAndBacktesting
         import support_files.File_IO as fio
         # read inputs from input_data inside this package directory (do not hardcode repo root)
         repo_dir = Path(__file__).resolve().parent

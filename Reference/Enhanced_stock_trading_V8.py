@@ -19,8 +19,8 @@ import pandas as pd
 import numpy as np
 from support_files.scrip_extractor import scrip_extractor
 import support_files.compute_indicators_helper as cmp  # For computing technical indicators
-from dashboard_integration import TradingDashboard
-from portfolio_optimiser import optimize_portfolio
+from Reference.dashboard_integration import TradingDashboard
+from Reference.portfolio_optimiser import optimize_portfolio
 
 
 # Trade constraint constants
@@ -1156,7 +1156,7 @@ class FilteringAndBacktesting:
         dashboard = None
         if create_dashboard and not backtested_scrips_df.empty:
             try:
-                from dashboard_integration import TradingDashboard
+                from Reference.dashboard_integration import TradingDashboard
                 combined_scrips_df = pd.concat(self.backtested_scrip_df_list, ignore_index=True)
                 combined_transactions_df = pd.concat(self.backtested_transactions_df_list, ignore_index=True)
                 # 🔧 Ensure Date is normalized for dashboard JSON
