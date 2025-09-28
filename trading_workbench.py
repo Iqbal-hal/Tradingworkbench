@@ -22,7 +22,7 @@ from tabs.portfolio_tab import PortfolioAnalysisTab
 
 class TradingWorkbench(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super().__init__()        
         self.data_manager = DataManager()
         self.current_data = None
         self.init_ui()
