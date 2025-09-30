@@ -23,7 +23,7 @@ from tabs.portfolio_tab import PortfolioAnalysisTab
 class TradingWorkbench(QMainWindow):
     def __init__(self):
         super().__init__()        
-        self.data_manager = DataManager()
+        self.datamanager = DataManager()
         self.current_data = None
         self.init_ui()
         
@@ -33,7 +33,7 @@ class TradingWorkbench(QMainWindow):
         self.setGeometry(100, 100, 1400, 900)  # x, y, width, height
         
         # Set application icon (optional)
-        # self.setWindowIcon(QIcon('icon.png'))
+        self.setWindowIcon(QIcon('icon.png'))
         
         # Create central widget and main layout
         central_widget = QWidget()
@@ -146,7 +146,7 @@ class TradingWorkbench(QMainWindow):
     def load_data(self, file_path):
         """Load data and update all tabs"""
         try:
-            self.current_data = self.data_manager.load_csv(file_path)
+            self.current_data = self.datamanager.load_csv(file_path)
             self.file_info_label.setText(f"Loaded: {os.path.basename(file_path)}\n"
                                        f"Rows: {len(self.current_data):,}\n"
                                        f"Stocks: {self.current_data['Stock'].nunique()}")
