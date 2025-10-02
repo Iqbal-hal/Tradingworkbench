@@ -58,9 +58,9 @@ class TradingWorkbench(QMainWindow):
         # Application title
         title = QLabel("Trading Workbench")
         title.setFont(QFont("Arial", 14, QFont.Bold))
+        title.setStyleSheet("color: blue;")
         title.setAlignment(Qt.AlignCenter)
-        sidebar_layout.addWidget(title)
-        
+        sidebar_layout.addWidget(title)        
         sidebar_layout.addSpacing(20)
         
         # Navigation buttons
@@ -84,8 +84,15 @@ class TradingWorkbench(QMainWindow):
         
         # Current file info
         self.file_info_label = QLabel("No data loaded")
+        self.file_info_label.setFont(QFont("Arial", 12))
+        self.file_info_label.setStyleSheet("""
+                color: Indigo;
+                background-color: #f0f0f0;
+                padding: 5px;
+                border-radius: 3px;
+            """)
         self.file_info_label.setWordWrap(True)
-        self.file_info_label.setStyleSheet("background-color: #f0f0f0; padding: 5px; border-radius: 3px;")
+        
         sidebar_layout.addWidget(self.file_info_label)
         
         sidebar.setLayout(sidebar_layout)
