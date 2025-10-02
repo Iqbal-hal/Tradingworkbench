@@ -11,7 +11,13 @@ def main():
     # Create the application
     app = QApplication(sys.argv)
     
-    # Create and show the main window
+    """
+        In a PyQt5 application, a window object, such as an instance of a
+        class that inherits from QMainWindow or QWidget, gains access to
+        the 'show()' method through inheritance from its base class in the
+        PyQt5 framework. Calling the 'show()' method makes the window visible
+        to the user within the application's event loop.
+    """
     window = TradingWorkbench()
     window.show()
     
